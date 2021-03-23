@@ -29,4 +29,7 @@ Now you can run:
 
 ./mnuod.sh
 
+![OneDrive Backup Menu](https://github.com/dkesselman/IBMi_Backup2OneDrive/blob/main/IBMi_Backup2OneDrive.gif "IBM i Backup to OneDrive - Menu")
+
+
 Good luck!
