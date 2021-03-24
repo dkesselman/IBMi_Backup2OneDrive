@@ -19,11 +19,12 @@ BUCKETDL(){ read -p "OneDrive source file : " odobject; $ODCMD  delete od:$odobj
  CRTLIB1(){ mkdir -p $IFSPATH; system "CRTLIB BACKUPSAV" ;}                                                                                          
  SAVLIB1(){ rm /QSYS.LIB/BACKUPSAV.LIB/$libname.FILE ;system "CRTSAVF BACKUPSAV/$libname"; system "SAVLIB LIB($libname) DEV(*SAVF) SAVF(BACKUPSAV/$libname) SAVACT(*LIB) SAVACTWAIT(60) "; }    
  ZIPLIB1(){ cd /QSYS.LIB/BACKUPSAV.LIB/;rm $IFSPATH/$libname.zip ;pigz -v -K -c $libname.FILE > /$IFSPATH/$libname.zip ; }  
-     B2C(){ $ODCMD  put $ifsfile od:$odpath ;}
+     B2C(){ $ODCMD  put $ifsfile "od:/"$odpath ;}
 BKPTOCLD(){ ASKLIB1;CRTLIB1;SAVLIB1;ZIPLIB1; B2C;LINE;}                                                                                            
 SAVSECDTA(){ rm /QSYS.LIB/BACKUPSAV.LIB/SAVSECDTA.FILE;system "CRTSAVF BACKUPSAV/SAVSECDTA"; system "SAVSECDTA DEV(*SAVF) SAVF(BACKUPSAV/SAVSECDTA)"; libname="SAVSECDTA";ifsfile=$IFSPATH/$libname.zip ; ZIPLIB1;B2C; }   
   SAVZIP2(){ SAVLIB1;ZIPLIB1;$e $odpath;B2C ;}
 BKPTOCLD2(){ 
+CRTLIB1;
 #Depuro biblioteca de salvado y directorio del IFS
 rm /QSYS.LIB/BACKUPSAV.LIB/*.FILE
 rm $IFSPATH/*.zip
