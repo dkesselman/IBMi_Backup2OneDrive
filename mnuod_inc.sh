@@ -48,12 +48,14 @@ system "SAVLIB LIB($libname) DEV(*SAVF) SAVF(BACKUPSAV/$libname) SAVACT(*LIB) SA
  ZIPLIB1(){ 
 cd /QSYS.LIB/BACKUPSAV.LIB/;
 rm $IFSPATH/$libname.zip 2>&1 ; 
-pigz -K -c $libname".FILE" > "/"$IFSPATH"/"$libname".zip";
+###pigz -K -c $libname".FILE" > "/"$IFSPATH"/"$libname".zip"; # Changed b/c compatibility with some systems #
+cat $libname".FILE" |pigz -K -c -p${pgzthr} - > "/"$IFSPATH"/"$libname".zip";
+###
 rm $libname".FILE";
 ifslog=$IFSPATH/$libname"_lst.zip";
 cd $IFSPATH; 
 pwd
-pigz -K -c $libname".csv" > $ifslog;
+cat $libname".csv" |pigz -K -c - > $ifslog;
 rm $libname".csv";
 }  
 #***********************************************************************************#        
