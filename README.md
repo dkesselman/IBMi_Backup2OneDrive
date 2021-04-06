@@ -19,9 +19,13 @@ yum install git pigz readline python3
 
 Next, you need to install "onedrivecmd":
 
+/QOpenSys/pkgs/bin/pip3 install https://github.com/OneDrive/onedrive-sdk-python/archive/master.zip
+
 /QOpenSys/pkgs/bin/pip3 install onedrivecmd
 
 And now you can download this scripts and change permissions:
+
+cd <PATH where you have downloaded the script>
 
 chmod +x mnuod*
 
