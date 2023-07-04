@@ -25,8 +25,8 @@ BUCKETDL(){ read -p "OneDrive source file : " odobject; $ODCMD  delete od:$odobj
  SAVLIST(){ system "CPYTOIMPF FROMFILE(BACKUPSAV/BKPLOG $libname ) TOSTMF('$IFSPATH/$libname.csv') MBROPT(*ADD) STMFCCSID(1208) RCDDLM(*CRLF) DTAFMT(*DLM) DATFMT(*YYMD)" ;} 
  CRTLIB1(){ [ -d $IFSPATH ] && mkdir -p $IFSPATH; system "CRTLIB BACKUPSAV" 2>&1 ;  }         
      B2C(){ $ODCMD  put $ifsfile "od:/"$odpath ;$ODCMD  put $ifslog "od:/"$odpath;}                             
-BKPTOCLD(){ ASKLIB1;CRTLIB1;SAVLIB1;SAVLIST;ZIPLIB1; B2C;LINE;}            
-SAVZIP2(){ echo 'Saving Library:' $libname ' - ' $dt;SAVLIB1;SAVLIST;ZIPLIB1;B2C;LINE;}
+BKPTOCLD(){ ASKLIB1;CRTLIB1;SAVLIB1;SAVLIST;ZIPLIB1; B2C;LINE2;}            
+SAVZIP2(){ echo 'Saving Library:' $libname ' - ' $dt;SAVLIB1;SAVLIST;ZIPLIB1;B2C;LINE2;}
  UNZIP1(){  gzip -d $libname"_lst.gz"; }
 #***********************************************************************************#        
 LSTCLDBKP(){
@@ -102,12 +102,13 @@ $E "QUSRSYS" >> $LIBLST;
 
 dt=$(date '+%Y%m%d-%H%M%S');
 dt2=$(date '+%Y%m%d');
-LOGNAME=$IFSPATH'/BAK'$prefix$dt'.log';                                                                                                                                                      
-odpath='BKP'$prefix$dt2'/';
+dt3=$(date '+%Y/%m/%d-%H:%M:%S');
+LOGNAME=$IFSPATH'/'$prefix$dt'.log';                                                                                                                                                      
+odpath=$prefix$dt2'/';
 
 echo 'SAVING DATA TO :' $odpath
 
-echo 'Starting Backup: BKP'$prefix$dt2 ' - ' $dt > $LOGNAME    
+echo 'Starting Backup: '$prefix$dt2 ' - ' $dt3 > $LOGNAME    
 
 # Save Security Data
 
@@ -131,11 +132,12 @@ done
 
 wait
 
-LINE;
+LINE2 >> $LOGNAME;
 $e $i "Libraries backed up to " $odpath;
  
-dt=$(date '+%Y%m%d-%H%M%S');
-echo 'Backup ending: BKP' $dt2 ' - ' $dt > $LOGNAME                                                                                                                                                                                     
+dt3=$(date '+%Y/%m/%d-%H:%M:%S');
+echo 'Backup has finished: '$prefix$dt2 ' - ' $dt3 >> $LOGNAME   
+LINE2 >> $LOGNAME;
 } 
 #***********************************************************************************#                             
                                                                                                     
@@ -173,4 +175,3 @@ REFRESH(){ after=$((i+1)); before=$((i-1))
    INIT(){ R;HEAD;FOOT;MENU;}                                                                                              
      SC(){ REFRESH;MARK;$S;$b;cur=`ARROW`;}                                                                                   
      ES(){ MARK;$e "    ENTER = main menu    ";$b;read;INIT;};INIT          
-
