@@ -5,9 +5,14 @@
    WRITE(){ $e "\e(B";}                                                                                                        
     MARK(){ $e "\e[7m";}                                                                                                       
   UNMARK(){ $e "\e[27m";}
-                                                                                                                        
+     POS(){ if [[ $cur == up ]];then ((i--));fi
+            if [[ $cur == dn ]];then ((i++));fi
+            if [[ $i -lt 0   ]];then i=$LM;fi
+            if [[ $i -gt $LM ]];then i=0;fi;}
+                                                                                                                       
     LINE(){ $E ""; $E "\033(0rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr\033(B";}                      
-                                                                                                                           
+   LINE2(){ echo ""; echo "=================================================================";}
+
 #***********************************************************************************#                                      
 #                           Cloud Functions                                         #                                      
 #***********************************************************************************#                                      
@@ -16,55 +21,65 @@ BUCKETLS(){ read -p "Directory to list: " odpath ; $ODCMD list od:$odpath;LINE;}
 BUCKETPT(){ read -p "OneDrive target directory : " odpath ; read -p "File on IFS:" ifsfile; $ODCMD put $ifsfile od:$odpath ;LINE;}                          
 BUCKETGT(){ read -p "OneDrive source file : " odobject; read -p "Target directory on IFS:" ifsfile; $ODCMD get od:$odobject $ifsfile ;LINE;}
 BUCKETDL(){ read -p "OneDrive source file : " odobject; $ODCMD  delete od:$odobject ;LINE;}                                     
- ASKLIB1(){ read -p "Library name: " libname; read -p "OneDrive directory : " odpath; ifsfile=$IFSPATH/$libname.zip ;} 
+ ASKLIB1(){ read -p "Library name: " libname; read -p "OneDrive directory : " odpath; ifsfile=$IFSPATH"/"$libname".gz" ;} 
  SAVLIST(){ system "CPYTOIMPF FROMFILE(BACKUPSAV/BKPLOG $libname ) TOSTMF('$IFSPATH/$libname.csv') MBROPT(*ADD) STMFCCSID(1208) RCDDLM(*CRLF) DTAFMT(*DLM) DATFMT(*YYMD)" ;} 
- CRTLIB1(){ mkdir -p $IFSPATH; system "CRTLIB BACKUPSAV" 2>&1 ;  }         
-     B2C(){ $ODCMD  put $ifsfile "od:/"$odpath ;$ODCMD  put $ifslog "od:/"$odpath;}                                                                                                                                                       
+ CRTLIB1(){ [ -d $IFSPATH ] && mkdir -p $IFSPATH; system "CRTLIB BACKUPSAV" 2>&1 ;  }         
+     B2C(){ $ODCMD  put $ifsfile "od:/"$odpath ;$ODCMD  put $ifslog "od:/"$odpath;}                             
 BKPTOCLD(){ ASKLIB1;CRTLIB1;SAVLIB1;SAVLIST;ZIPLIB1; B2C;LINE;}            
-SAVZIP2(){ $E 'Saving Library:' $libname ' - ' $dt;SAVLIB1;SAVLIST;ZIPLIB1;B2C;LINE;}
- UNZIP1(){ pigz -d -K -k -c $libname"_lst.zip" > $libname".csv"; }
+SAVZIP2(){ echo 'Saving Library:' $libname ' - ' $dt;SAVLIB1;SAVLIST;ZIPLIB1;B2C;LINE;}
+ UNZIP1(){  gzip -d $libname"_lst.gz"; }
 #***********************************************************************************#        
 LSTCLDBKP(){
 ASKLIB1;
 cd $IFSPATH
-odobject=$odpath"/"$libname"_lst.zip";
+odobject=$odpath"/"$libname"_lst.gz";
 echo $odobject;
 $ODCMD get od:$odobject $IFSPATH"/"; 
 UNZIP1;
 #------------------------------------------
 CLEAR;WRITE;MARK;TPUT 6 0 
-$E $FLISTHD; 
+echo $FLISTHD; 
 awk -F "," '{print($3,$12,$13,$15,$16,$17,$18,$22)}' $libname".csv" | tr -d '"';
 #------------------------------------------
 }
 #***********************************************************************************#                                                                                                                                                     
  SAVLIB1(){ 
-rm /QSYS.LIB/BACKUPSAV.LIB/$libname.FILE 2>&1 ;
+if [ -f "/QSYS.LIB/BACKUPSAV.LIB/"$libname".FILE" ]; then
+    rm /QSYS.LIB/BACKUPSAV.LIB/$libname.FILE  ;
+fi
 system "RMVM FILE(BACKUPSAV/BKPLOG) MBR($libname)" 2>&1;
 system "CRTSAVF BACKUPSAV/$libname"; 
 system "SAVLIB LIB($libname) DEV(*SAVF) SAVF(BACKUPSAV/$libname) SAVACT(*LIB) SAVACTWAIT(60) OUTPUT(*OUTFILE) OUTFILE(BACKUPSAV/BKPLOG) OUTMBR($libname)"; 
 }
 #***********************************************************************************#        
  ZIPLIB1(){ 
-cd /QSYS.LIB/BACKUPSAV.LIB/;
-rm $IFSPATH/$libname.zip 2>&1 ; 
-###pigz -K -c $libname".FILE" > "/"$IFSPATH"/"$libname".zip"; # Changed b/c compatibility with some systems #
-cat $libname".FILE" |pigz -K -c -p${pgzthr} - > "/"$IFSPATH"/"$libname".zip";
-###
-rm $libname".FILE";
-ifslog=$IFSPATH/$libname"_lst.zip";
-cd $IFSPATH; 
-pwd
-cat $libname".csv" |pigz -K -c - > $ifslog;
+
+if [ -f $IFSPATH"/"$libname".gz*" ]; then
+    rm $IFSPATH"/"$libname".gz*"; 
+fi
+
+cd $IFSPATH;
+echo "Compressing: " $libname ;
+
+cat "/QSYS.LIB/BACKUPSAV.LIB/"$libname".FILE" |pigz -p$pgzthr --fast > $libname".gz"
+
+rm "/QSYS.LIB/BACKUPSAV.LIB/"$libname".FILE";
+ifslog=$IFSPATH"/"$libname"_lst.gz";
+cat $IFSPATH"/"$libname".csv"| gzip > $ifslog;
 rm $libname".csv";
 }  
 #***********************************************************************************#        
 SAVSECDTA(){ 
-rm /QSYS.LIB/BACKUPSAV.LIB/SAVSECDTA.FILE 2>&1 ;
+
+$E 'Saving Security Data: ' $odpath  >> $LOGNAME
+
+if [ -f /QSYS.LIB/BACKUPSAV.LIB/SAVSECDTA.FILE ]; then
+    rm /QSYS.LIB/BACKUPSAV.LIB/SAVSECDTA.FILE;
+fi
 system "CRTSAVF BACKUPSAV/SAVSECDTA"; 
 system "SAVSECDTA DEV(*SAVF) SAVF(BACKUPSAV/SAVSECDTA) OUTPUT(*OUTFILE) OUTFILE(BACKUPSAV/BKPLOG) OUTMBR(SAVSECDTA)"; 
 libname="SAVSECDTA";
-ifsfile=$IFSPATH"/"$libname".zip";
+ifsfile=$IFSPATH"/"$libname".gz";
 SAVLIST;
 ZIPLIB1;
 B2C; 
@@ -74,7 +89,7 @@ BKPTOCLD2(){
 CRTLIB1; 
 #Purge BACKUPSAV library and IFS path
 rm /QSYS.LIB/BACKUPSAV.LIB/*.FILE 2>&1
-rm $IFSPATH/*.zip 2>&1
+rm $IFSPATH/*.gz* 2>&1
 rm $IFSPATH/*.csv 2>&1
 
 #List libraries excluding Q*, SYS* & ASN
@@ -87,17 +102,15 @@ $E "QUSRSYS" >> $LIBLST;
 
 dt=$(date '+%Y%m%d-%H%M%S');
 dt2=$(date '+%Y%m%d');
-LOGNAME=$IFSPATH'/BAK'$dt'.log';                                                                                                                                                      
-odpath='BKP'$dt2'/';
+LOGNAME=$IFSPATH'/BAK'$prefix$dt'.log';                                                                                                                                                      
+odpath='BKP'$prefix$dt2'/';
 
-$E 'SAVING DATA TO :' $odpath
+echo 'SAVING DATA TO :' $odpath
 
-$E 'Starting Backup: BKP' $dt2 ' - ' $dt > $LOGNAME    
+echo 'Starting Backup: BKP'$prefix$dt2 ' - ' $dt > $LOGNAME    
 
 # Save Security Data
 
-$E 'Saving Security Data: ' $odpath  >> $LOGNAME    
- 
 SAVSECDTA;                 
 
 # Save library 1 by 1
@@ -107,9 +120,9 @@ liblst=$(cat $LIBLST);
 for libname in $liblst
 do
         i=$((i+1));
-        ifsfile=$IFSPATH/$libname.zip ;
+        ifsfile=$IFSPATH"/"$libname".gz" ;
         dt=$(date '+%Y%m%d-%H%M%S');
-	SAVZIP2 >> $LOGNAME & 
+      	SAVZIP2 >> $LOGNAME & 
         while (( ${num_jobs@P} >= num_procs )) 
         do
             wait -n
@@ -151,10 +164,6 @@ echo 'Backup ending: BKP' $dt2 ' - ' $dt > $LOGNAME
      M8(){ TPUT 15 11; $e "EXIT                          ";}                                                             
       LM=8;                                                                                                                 
    MENU(){ for each in $(seq 0 $LM);do M${each};done;}                                                                     
-   POS(){ if [[ $cur == up ]];then ((i--));fi                                                                              
-           if [[ $cur == dn ]];then ((i++));fi                                                                             
-           if [[ $i -lt 0   ]];then i=$LM;fi                                                                               
-           if [[ $i -gt $LM ]];then i=0;fi;}                                                                                    
 REFRESH(){ after=$((i+1)); before=$((i-1))                                                                                 
            if [[ $before -lt 0  ]];then before=$LM;fi                                                                     
            if [[ $after -gt $LM ]];then after=0;fi                                                                        
