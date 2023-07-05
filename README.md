@@ -23,6 +23,12 @@ Next, you need to install "onedrivecmd":
 
 /QOpenSys/pkgs/bin/pip3 install onedrivecmd
 
+Initialize onedrivecmd
+
+onedrivecmd init
+
+Follow the messages in your ssh session (you will need to cut&paste a long URL).
+
 And now you can download this scripts and change permissions:
 
 cd <PATH where you have downloaded the script>
